@@ -1,0 +1,11 @@
+.row {
+  display: table;
+  width: 200px;
+  height: 20px;
+}
+
+.cell {
+  display: table-cell;
+  border: 1px solid #bada55;
+  width: 20px;
+}

@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "pacman.js",
+  "sourceRoot": "",
+  "sources": [
+    "pacman.coffee"
+  ],
+  "names": [],
+  "mappings": "AAEA;CAAA,KAAA,KAAA;;CAAA,CAAA,CACE,EADF;CACE,CAAQ,EAAR,EAAA;CAAA,CACkB,EAAlB,EADA,UACA;CADA,CAEM,CAAC,CAAP;CAHF,GAAA;;CAAA,CAYA,CAAO,CAAP,CACqB,CAEK,CAHnB;;CAZP,CAmBA,CAAgC,CAAA,CAAA,CAAhC,EAAA,CAAA;CAnBA"
+}

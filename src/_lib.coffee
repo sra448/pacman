@@ -30,6 +30,12 @@ window.compose = (funcs...) ->
     args = [funcs[lastFuncIndex - i].apply this, args] for _, i in funcs
     args[0]
 
+# some predicates
+window.equalsP = autoCurry (a, b) -> a == b
+window.undefinedP = equalsP undefined
+
 # some html elements
 window.Tag = autoCurry (name, id, content) -> "<#{name}#{" class=#{id}" if id?}>#{content}</#{name}>"
 window.Div = Tag "div"
+
+window.setProperty = autoCurry (el, name, value) -> el[name] = value

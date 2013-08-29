@@ -57,11 +57,21 @@
     };
   };
 
+  window.equalsP = autoCurry(function(a, b) {
+    return a === b;
+  });
+
+  window.undefinedP = equalsP(void 0);
+
   window.Tag = autoCurry(function(name, id, content) {
     return "<" + name + (id != null ? " class=" + id : void 0) + ">" + content + "</" + name + ">";
   });
 
   window.Div = Tag("div");
+
+  window.setProperty = autoCurry(function(el, name, value) {
+    return el[name] = value;
+  });
 
 }).call(this);
 

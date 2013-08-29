@@ -1,5 +1,5 @@
 (function() {
-  var Direction, draw, enemyP, foodP, gameloop, lookupArea, setArea, startGame, transformPosition, transformWorld, wallP, world;
+  var Direction, canWalkThere, draw, enemyP, foodP, gameloop, lookupArea, setArea, startGame, transformPosition, transformWorld, wallP, world;
 
   Direction = {
     top: 38,
@@ -27,6 +27,10 @@
 
   enemyP = equalsP("e");
 
+  canWalkThere = function(cell) {
+    return (wallP(cell)) || (undefinedP(cell));
+  };
+
   transformPosition = function(xy, direction) {
     var x, y;
     x = xy[0], y = xy[1];
@@ -43,7 +47,8 @@
   };
 
   lookupArea = function(coordinates, xs) {
-    return xs[coordinates[1]][coordinates[0]];
+    var _ref;
+    return (_ref = xs[coordinates[1]]) != null ? _ref[coordinates[0]] : void 0;
   };
 
   setArea = function(coordinates, value, xs) {
@@ -51,10 +56,19 @@
   };
 
   transformWorld = function(world) {
-    var newPosition, player;
+    var aspiredPosition, awaitingDirection, newPosition, player;
     player = world.player;
+    awaitingDirection = player.awaitingDirection;
     newPosition = transformPosition(player.position, player.direction);
-    if (!wallP(lookupArea(newPosition, world.area))) {
+    if (awaitingDirection != null) {
+      aspiredPosition = transformPosition(player.position, awaitingDirection);
+      if (!canWalkThere(lookupArea(aspiredPosition, world.area))) {
+        newPosition = aspiredPosition;
+        player.direction = awaitingDirection;
+        player.awaitingDirection = void 0;
+      }
+    }
+    if (!canWalkThere(lookupArea(newPosition, world.area))) {
       setArea(player.position, "", world.area);
       setArea(newPosition, "P", world.area);
       return player.position = newPosition;
@@ -64,14 +78,12 @@
   gameloop = function() {
     transformWorld(world);
     draw(world);
-    return setTimeout((function() {
-      return gameloop(world);
-    }), 300);
+    return setTimeout(gameloop, 450);
   };
 
   startGame = function() {
     $(document).on("keydown", function(e) {
-      return world.player.direction = e.keyCode;
+      return world.player.awaitingDirection = e.keyCode;
     });
     return gameloop();
   };

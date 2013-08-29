@@ -33,6 +33,7 @@ draw world
 wallP = equalsP "w"
 foodP = equalsP "+"
 enemyP = equalsP "e"
+canWalkThere = (cell) -> (wallP cell) || (undefinedP cell)
 
 transformPosition = (xy, direction) ->
   [x, y] = xy
@@ -42,14 +43,22 @@ transformPosition = (xy, direction) ->
     when Direction.top then [x, y-1]
     when Direction.down then [x, y+1]
 
-lookupArea = (coordinates, xs) -> xs[coordinates[1]][coordinates[0]]
+lookupArea = (coordinates, xs) -> xs[coordinates[1]]?[coordinates[0]]
 setArea = (coordinates, value, xs) -> xs[coordinates[1]][coordinates[0]] = value
 
 transformWorld = (world) ->
   player = world.player
+  awaitingDirection = player.awaitingDirection
   newPosition = transformPosition player.position, player.direction
 
-  if !wallP (lookupArea newPosition, world.area)
+  if awaitingDirection?
+    aspiredPosition = transformPosition player.position, awaitingDirection
+    if !canWalkThere (lookupArea aspiredPosition, world.area)
+      newPosition = aspiredPosition
+      player.direction = awaitingDirection
+      player.awaitingDirection = undefined
+
+  if !canWalkThere (lookupArea newPosition, world.area)
     setArea player.position, "", world.area
     setArea newPosition, "P", world.area
     player.position = newPosition
@@ -57,10 +66,10 @@ transformWorld = (world) ->
 gameloop = ->
   transformWorld world
   draw world
-  setTimeout (-> gameloop world), 300
+  setTimeout gameloop, 450
 
 startGame = ->
-  $(document).on "keydown", (e) -> world.player.direction = e.keyCode
+  $(document).on "keydown", (e) -> world.player.awaitingDirection = e.keyCode
   gameloop()
 
 startGame()

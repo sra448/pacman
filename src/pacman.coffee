@@ -1,5 +1,4 @@
-# no need for require yet (only two files and a lot of globals)
-
+# Direction "Enum" uses keyCodes for easier assigning in events
 Direction =
   top: 38
   right: 39
@@ -11,12 +10,16 @@ world =
   player:
     position: [0, 0]
     direction: Direction.right
+    view: "O"
+  enemies: [
+    { position: [7, 5], direction: Direction.left, view: "E" }
+  ]
   area: [['p', '+', '+', '+', '+', 'w', 'w', '+', '+', '+']
          ['+', 'w', '+', 'w', '+', '+', 'w', '+', '+', '+']
          ['+', 'w', '+', 'w', '+', '+', 'w', '+', '+', '+']
          ['+', 'w', '+', '+', '+', '+', 'w', '+', '+', '+']
          ['+', 'w', 'w', 'w', '+', '+', '+', '+', '+', '+']
-         ['+', 'w', '+', 'w', '+', '+', '+', '+', '+', '+']
+         ['+', 'w', '+', 'w', '+', '+', '+', 'e', '+', '+']
          ['+', 'w', '+', 'w', '+', '+', 'w', 'w', 'w', '+']
          ['+', 'w', '+', '+', '+', '+', '+', '+', '+', '+']]
 
@@ -35,8 +38,7 @@ foodP = equalsP "+"
 enemyP = equalsP "e"
 canWalkThere = (cell) -> (wallP cell) || (undefinedP cell)
 
-transformPosition = (xy, direction) ->
-  [x, y] = xy
+transformPosition = ([x, y], direction) ->
   switch direction
     when Direction.left then [x-1, y]
     when Direction.right then [x+1, y]
@@ -46,22 +48,28 @@ transformPosition = (xy, direction) ->
 lookupArea = (coordinates, xs) -> xs[coordinates[1]]?[coordinates[0]]
 setArea = (coordinates, value, xs) -> xs[coordinates[1]][coordinates[0]] = value
 
-transformWorld = (world) ->
-  player = world.player
-  awaitingDirection = player.awaitingDirection
-  newPosition = transformPosition player.position, player.direction
+getPossibleDirections = (position, world) ->
+  canWalkThere (transformPosition position, value) for direction, value of Direction
+
+transformObject = (obj) ->
+  awaitingDirection = obj.awaitingDirection
+  newPosition = transformPosition obj.position, obj.direction
 
   if awaitingDirection?
-    aspiredPosition = transformPosition player.position, awaitingDirection
+    aspiredPosition = transformPosition obj.position, awaitingDirection
     if !canWalkThere (lookupArea aspiredPosition, world.area)
       newPosition = aspiredPosition
-      player.direction = awaitingDirection
-      player.awaitingDirection = undefined
+      obj.direction = awaitingDirection
+      obj.awaitingDirection = undefined
 
   if !canWalkThere (lookupArea newPosition, world.area)
-    setArea player.position, "", world.area
-    setArea newPosition, "P", world.area
-    player.position = newPosition
+    setArea obj.position, "", world.area
+    setArea newPosition, obj.view, world.area
+    obj.position = newPosition
+
+transformWorld = (world) ->
+  transformObject world.player
+  transformObject enemy for enemy in world.enemies
 
 gameloop = ->
   transformWorld world
@@ -69,7 +77,7 @@ gameloop = ->
   setTimeout gameloop, 450
 
 startGame = ->
-  $(document).on "keydown", (e) -> world.player.awaitingDirection = e.keyCode
+  $(document).on "keydown", (e) -> world.player.awaitingDirection = e.keyCode if contains e.keyCode, [37, 38, 39, 40]
   gameloop()
 
 startGame()

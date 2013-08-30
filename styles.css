@@ -1,11 +1,13 @@
 .row {
   display: table;
-  width: 200px;
-  height: 20px;
+  height: 34px;
 }
 
 .cell {
   display: table-cell;
   border: 1px solid #bada55;
-  width: 20px;
+  width: 30px;
+  vertical-align: middle;
+  text-align: center;
+  font-family: arial;
 }

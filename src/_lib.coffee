@@ -39,3 +39,7 @@ window.Tag = autoCurry (name, id, content) -> "<#{name}#{" class=#{id}" if id?}>
 window.Div = Tag "div"
 
 window.setProperty = autoCurry (el, name, value) -> el[name] = value
+
+window.contains = (a, xs) ->
+  return true if x == a for x in xs
+  false

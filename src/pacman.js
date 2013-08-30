@@ -1,5 +1,5 @@
 (function() {
-  var Direction, canWalkThere, draw, enemyP, foodP, gameloop, lookupArea, setArea, startGame, transformPosition, transformWorld, wallP, world;
+  var Direction, canWalkThere, draw, enemyP, foodP, gameloop, getPossibleDirections, lookupArea, setArea, startGame, transformObject, transformPosition, transformWorld, wallP, world;
 
   Direction = {
     top: 38,
@@ -12,9 +12,17 @@
     points: 0,
     player: {
       position: [0, 0],
-      direction: Direction.right
+      direction: Direction.right,
+      view: "O"
     },
-    area: [['p', '+', '+', '+', '+', 'w', 'w', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', 'w', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', 'w', '+', '+', '+'], ['+', 'w', '+', '+', '+', '+', 'w', '+', '+', '+'], ['+', 'w', 'w', 'w', '+', '+', '+', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', '+', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', 'w', 'w', 'w', '+'], ['+', 'w', '+', '+', '+', '+', '+', '+', '+', '+']]
+    enemies: [
+      {
+        position: [7, 5],
+        direction: Direction.left,
+        view: "E"
+      }
+    ],
+    area: [['p', '+', '+', '+', '+', 'w', 'w', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', 'w', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', 'w', '+', '+', '+'], ['+', 'w', '+', '+', '+', '+', 'w', '+', '+', '+'], ['+', 'w', 'w', 'w', '+', '+', '+', '+', '+', '+'], ['+', 'w', '+', 'w', '+', '+', '+', 'e', '+', '+'], ['+', 'w', '+', 'w', '+', '+', 'w', 'w', 'w', '+'], ['+', 'w', '+', '+', '+', '+', '+', '+', '+', '+']]
   };
 
   draw = compose(setProperty(($("#world"))[0], 'innerHTML'), join("\n"), map(Div("row")), map(join("\n")), map(map(Div("cell"))), dot("area"));
@@ -31,9 +39,9 @@
     return (wallP(cell)) || (undefinedP(cell));
   };
 
-  transformPosition = function(xy, direction) {
+  transformPosition = function(_arg, direction) {
     var x, y;
-    x = xy[0], y = xy[1];
+    x = _arg[0], y = _arg[1];
     switch (direction) {
       case Direction.left:
         return [x - 1, y];
@@ -55,24 +63,45 @@
     return xs[coordinates[1]][coordinates[0]] = value;
   };
 
-  transformWorld = function(world) {
-    var aspiredPosition, awaitingDirection, newPosition, player;
-    player = world.player;
-    awaitingDirection = player.awaitingDirection;
-    newPosition = transformPosition(player.position, player.direction);
+  getPossibleDirections = function(position, world) {
+    var direction, value, _results;
+    _results = [];
+    for (direction in Direction) {
+      value = Direction[direction];
+      _results.push(canWalkThere(transformPosition(position, value)));
+    }
+    return _results;
+  };
+
+  transformObject = function(obj) {
+    var aspiredPosition, awaitingDirection, newPosition;
+    awaitingDirection = obj.awaitingDirection;
+    newPosition = transformPosition(obj.position, obj.direction);
     if (awaitingDirection != null) {
-      aspiredPosition = transformPosition(player.position, awaitingDirection);
+      aspiredPosition = transformPosition(obj.position, awaitingDirection);
       if (!canWalkThere(lookupArea(aspiredPosition, world.area))) {
         newPosition = aspiredPosition;
-        player.direction = awaitingDirection;
-        player.awaitingDirection = void 0;
+        obj.direction = awaitingDirection;
+        obj.awaitingDirection = void 0;
       }
     }
     if (!canWalkThere(lookupArea(newPosition, world.area))) {
-      setArea(player.position, "", world.area);
-      setArea(newPosition, "P", world.area);
-      return player.position = newPosition;
+      setArea(obj.position, "", world.area);
+      setArea(newPosition, obj.view, world.area);
+      return obj.position = newPosition;
     }
+  };
+
+  transformWorld = function(world) {
+    var enemy, _i, _len, _ref, _results;
+    transformObject(world.player);
+    _ref = world.enemies;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      enemy = _ref[_i];
+      _results.push(transformObject(enemy));
+    }
+    return _results;
   };
 
   gameloop = function() {
@@ -83,7 +112,9 @@
 
   startGame = function() {
     $(document).on("keydown", function(e) {
-      return world.player.awaitingDirection = e.keyCode;
+      if (contains(e.keyCode, [37, 38, 39, 40])) {
+        return world.player.awaitingDirection = e.keyCode;
+      }
     });
     return gameloop();
   };

@@ -73,6 +73,22 @@
     return el[name] = value;
   });
 
+  window.contains = function(a, xs) {
+    var x;
+    if ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = xs.length; _i < _len; _i++) {
+        x = xs[_i];
+        _results.push(x === a);
+      }
+      return _results;
+    })()) {
+      return true;
+    }
+    return false;
+  };
+
 }).call(this);
 
 /*

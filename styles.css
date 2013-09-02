@@ -1,0 +1,13 @@
+.row {
+  display: table;
+  height: 34px;
+}
+
+.cell {
+  display: table-cell;
+  border: 1px solid #eee;
+  width: 30px;
+  vertical-align: middle;
+  text-align: center;
+  font-family: arial;
+}

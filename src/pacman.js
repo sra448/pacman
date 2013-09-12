@@ -1,5 +1,5 @@
 (function() {
-  var Direction, Div, HtmlParameter, HtmlTag, autoCurry, compose, containsP, curry, doOr, dot, draw, enemyP, equalsP, foodP, gameloop, getArrayFromArguments, getPossibleDirections, join, lookupArea, map, setArea, setProperty, startGame, toArray, transformCoordinates, transformObject, transformWorld, undefinedP, walkableP, wallP, world,
+  var Direction, Div, HtmlParameter, HtmlTag, autoCurry, compose, containsP, curry, doOr, dot, draw, enemyP, equalsP, foodP, gameloop, getArrayFromArguments, getPossibleDirections, join, lookupArea, map, prevTime, setArea, setProperty, startGame, toArray, transformCoordinates, transformObject, transformWorld, undefinedP, walkableP, wallP, world,
     __slice = [].slice;
 
   toArray = function(xs) {
@@ -120,7 +120,7 @@
     player: {
       position: [1, 1],
       direction: Direction.right,
-      view: "O"
+      view: "\u15E7"
     },
     enemySpawns: [[12, 12], [12, 14], [12, 16]],
     enemies: [],
@@ -151,24 +151,23 @@
 
   enemyP = compose(equalsP("E"), lookupArea);
 
-  walkableP = compose(doOr(wallP, undefinedP), (function() {
-    var args;
-    args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-    return args;
-  }));
+  walkableP = compose(doOr(wallP, undefinedP), getArrayFromArguments);
 
-  transformCoordinates = function(_arg, direction) {
+  transformCoordinates = function(_arg, direction, amount) {
     var x, y;
     x = _arg[0], y = _arg[1];
+    if (amount == null) {
+      amount = 1;
+    }
     switch (direction) {
       case Direction.left:
-        return [x - 1, y];
+        return [x - amount, y];
       case Direction.right:
-        return [x + 1, y];
+        return [x + amount, y];
       case Direction.top:
-        return [x, y - 1];
+        return [x, y - amount];
       case Direction.down:
-        return [x, y + 1];
+        return [x, y + amount];
     }
   };
 
@@ -184,9 +183,9 @@
     return _results;
   };
 
-  transformObject = function(obj) {
+  transformObject = function(obj, amount) {
     var aspiredPosition, newPosition;
-    newPosition = transformCoordinates(obj.position, obj.direction);
+    newPosition = transformCoordinates(obj.position, obj.direction, amount);
     if (obj.awaitingDirection != null) {
       aspiredPosition = transformCoordinates(obj.position, obj.awaitingDirection);
       if (!walkableP(aspiredPosition, world.area)) {
@@ -203,21 +202,19 @@
   };
 
   transformWorld = function(world) {
-    var enemy, _i, _len, _ref, _results;
-    transformObject(world.player);
-    _ref = world.enemies;
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      enemy = _ref[_i];
-      _results.push(transformObject(enemy));
-    }
-    return _results;
+    return transformObject(world.player);
   };
 
-  gameloop = function() {
-    transformWorld(world);
+  prevTime = 0;
+
+  gameloop = function(actTime) {
+    var time;
+    time = (actTime - prevTime) / 1000;
+    prevTime = actTime;
+    console.log(time);
+    transformWorld(world, time);
     draw(world);
-    return setTimeout(gameloop, 300);
+    return requestAnimationFrame(gameloop);
   };
 
   startGame = function() {

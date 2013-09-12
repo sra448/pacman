@@ -52,7 +52,6 @@ Div = HtmlTag "div"
 
 setProperty = autoCurry (el, name, value) -> el[name] = value
 
-
 # Direction type uses keyCodes for easier assigning in events
 Direction =
   top: 38
@@ -65,7 +64,7 @@ world =
   player:
     position: [1, 1]
     direction: Direction.right
-    view: "O"
+    view: "\u15E7"
   enemySpawns: [[12, 12], [12, 14], [12, 16]]
   enemies: []
   area: [["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W"]
@@ -118,20 +117,20 @@ foodP = compose (equalsP "+"), lookupArea
 
 enemyP = compose (equalsP "E"), lookupArea
 
-walkableP = compose (doOr wallP, undefinedP), ((args...) -> args)
+walkableP = compose (doOr wallP, undefinedP), getArrayFromArguments
 
-transformCoordinates = ([x, y], direction) ->
+transformCoordinates = ([x, y], direction, amount = 1) ->
   switch direction
-    when Direction.left then [x-1, y]
-    when Direction.right then [x+1, y]
-    when Direction.top then [x, y-1]
-    when Direction.down then [x, y+1]
+    when Direction.left then [x-amount, y]
+    when Direction.right then [x+amount, y]
+    when Direction.top then [x, y-amount]
+    when Direction.down then [x, y+amount]
 
 getPossibleDirections = (position) ->
   value for _, value of Direction when walkableP (transformCoordinates position, value), world.area
 
-transformObject = (obj) ->
-  newPosition = transformCoordinates obj.position, obj.direction
+transformObject = (obj, amount) ->
+  newPosition = transformCoordinates obj.position, obj.direction, amount
 
   if obj.awaitingDirection?
     aspiredPosition = transformCoordinates obj.position, obj.awaitingDirection
@@ -147,12 +146,17 @@ transformObject = (obj) ->
 
 transformWorld = (world) ->
   transformObject world.player
-  transformObject enemy for enemy in world.enemies
+  # transformObject enemy for enemy in world.enemies
 
-gameloop = ->
-  transformWorld world
+prevTime = 0
+gameloop = (actTime) ->
+  time = (actTime - prevTime) / 1000
+  prevTime = actTime
+  console.log time
+
+  transformWorld world, time
   draw world
-  setTimeout gameloop, 300
+  requestAnimationFrame gameloop
 
 startGame = ->
   draw world

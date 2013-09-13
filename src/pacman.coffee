@@ -60,8 +60,10 @@ Direction =
   left: 37
 
 world =
+  running: false
   points: 0
   player:
+    speed: 3 # tiles per second
     position: [1, 1]
     direction: Direction.right
     view: "\u15E7"
@@ -81,7 +83,7 @@ world =
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", ".", ".", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         ["P", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "P"]
+         ["W", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "W"]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
@@ -126,42 +128,50 @@ transformCoordinates = ([x, y], direction, amount = 1) ->
     when Direction.top then [x, y-amount]
     when Direction.down then [x, y+amount]
 
-getPossibleDirections = (position) ->
-  value for _, value of Direction when walkableP (transformCoordinates position, value), world.area
-
 thinkPlayer = (player) ->
   if player.awaitingDirection?
     aspiredPosition = transformCoordinates player.position, player.awaitingDirection
-    if !walkableP aspiredPosition, world.area
-      newPosition = aspiredPosition
+    aspiredTile = map Math.floor, aspiredPosition
+    if !wallP aspiredTile, world.area
       player.direction = player.awaitingDirection
       player.awaitingDirection = undefined
+      newPosition = aspiredPosition
 
 transformObject = (obj, amount) ->
-  newPosition = transformCoordinates obj.position, obj.direction, amount
-  if !walkableP newPosition, world.area
-    setArea obj.position, "", world.area
-    setArea newPosition, obj.view, world.area
-    obj.position = newPosition
+  currentTile = map Math.floor, obj.position
+  aspiredPosition = transformCoordinates obj.position, obj.direction, amount
+  aspiredTile = map Math.floor, aspiredPosition
+  if !wallP aspiredTile, world.area
+    setArea currentTile, "", world.area
+    setArea aspiredTile, obj.view, world.area
+    obj.position = aspiredPosition
 
-transformWorld = (world) ->
-  transformObject world.player
-  # transformObject enemy for enemy in world.enemies
+transformWorld = (world, amount) ->
+  transformObject world.player, amount
 
 prevTime = 0
-gameloop = (actTime) ->
-  time = (actTime - prevTime) / 100
-  prevTime = actTime
-  console.log time
-
-  thinkPlayer world.player
-  transformWorld world, time
-  draw world
-  requestAnimationFrame gameloop
+gameloop = (runningTime) ->
+  requestAnimationFrame gameloop if world.running
+  console.log prevTime
+  if prevTime != 0
+    time = (runningTime - prevTime) / 1000
+    thinkPlayer world.player
+    transformWorld world, time
+    draw world
+  prevTime = runningTime if world.running
 
 startGame = ->
   draw world
-  $(document).on "keydown", (e) -> world.player.awaitingDirection = e.keyCode if containsP e.keyCode, [37, 38, 39, 40]
-  gameloop()
+  $(document).on "keydown", (e) ->
+    if containsP e.keyCode, [37, 38, 39, 40, 32]
+      e.preventDefault()
+      world.player.awaitingDirection = e.keyCode if containsP e.keyCode, [37, 38, 39, 40]
+
+      if !world.running
+        world.running = true
+        requestAnimationFrame gameloop
+      else if e.keyCode == 32
+        world.running = false
+        prevTime = 0
 
 startGame()

@@ -81,7 +81,7 @@ world =
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", ".", ".", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         ["P", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "P"]
+         [".", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
@@ -129,16 +129,16 @@ transformCoordinates = ([x, y], direction, amount = 1) ->
 getPossibleDirections = (position) ->
   value for _, value of Direction when walkableP (transformCoordinates position, value), world.area
 
-thinkPlayer = (player) ->
-  if player.awaitingDirection?
-    aspiredPosition = transformCoordinates player.position, player.awaitingDirection
-    if !walkableP aspiredPosition, world.area
-      newPosition = aspiredPosition
-      player.direction = player.awaitingDirection
-      player.awaitingDirection = undefined
-
 transformObject = (obj, amount) ->
   newPosition = transformCoordinates obj.position, obj.direction, amount
+
+  if obj.awaitingDirection?
+    aspiredPosition = transformCoordinates obj.position, obj.awaitingDirection
+    if !walkableP aspiredPosition, world.area
+      newPosition = aspiredPosition
+      obj.direction = obj.awaitingDirection
+      obj.awaitingDirection = undefined
+
   if !walkableP newPosition, world.area
     setArea obj.position, "", world.area
     setArea newPosition, obj.view, world.area
@@ -150,11 +150,10 @@ transformWorld = (world) ->
 
 prevTime = 0
 gameloop = (actTime) ->
-  time = (actTime - prevTime) / 100
+  time = (actTime - prevTime) / 1000
   prevTime = actTime
   console.log time
 
-  thinkPlayer world.player
   transformWorld world, time
   draw world
   requestAnimationFrame gameloop

@@ -63,7 +63,7 @@ world =
   running: false
   points: 0
   player:
-    speed: 3 # tiles per second
+    speed: 4 # tiles per second
     position: [1, 1]
     direction: Direction.right
     view: "\u15E7"
@@ -115,31 +115,33 @@ setArea = ([x, y], value, xs) -> xs[y][x] = value
 # some usefull predicates
 wallP = compose (equalsP "W"), lookupArea
 
-foodP = compose (equalsP "+"), lookupArea
-
-enemyP = compose (equalsP "E"), lookupArea
-
-walkableP = compose (doOr wallP, undefinedP), getArrayFromArguments
+isPastTileP = ([dx, dy], [ox, oy], direction) ->
+  switch direction
+    when Direction.left then dx < (Math.floor ox)
+    when Direction.right then (Math.floor dx) > ox
+    when Direction.top then dy < (Math.floor oy)
+    when Direction.down then (Math.floor dy) > oy
 
 transformCoordinates = ([x, y], direction, amount = 1) ->
   switch direction
-    when Direction.left then [x-amount, y]
-    when Direction.right then [x+amount, y]
-    when Direction.top then [x, y-amount]
-    when Direction.down then [x, y+amount]
+    when Direction.left then [x-amount, (Math.floor y)]
+    when Direction.right then [x+amount, (Math.floor y)]
+    when Direction.top then [(Math.floor x), y-amount]
+    when Direction.down then [(Math.floor x), y+amount]
 
-thinkPlayer = (player) ->
+playPlayer = (player, amount) ->
   if player.awaitingDirection?
-    aspiredPosition = transformCoordinates player.position, player.awaitingDirection
-    aspiredTile = map Math.floor, aspiredPosition
-    if !wallP aspiredTile, world.area
-      player.direction = player.awaitingDirection
-      player.awaitingDirection = undefined
-      newPosition = aspiredPosition
+    currentRealPosition = map Math.floor, player.position
+    currentAspiredPosition = transformCoordinates player.position, player.direction, amount * player.speed
+    if isPastTileP currentAspiredPosition, currentRealPosition, player.direction
+      aspiredTile = transformCoordinates currentRealPosition, player.awaitingDirection
+      if !wallP aspiredTile, world.area
+        player.direction = player.awaitingDirection
+        player.awaitingDirection = undefined
 
 transformObject = (obj, amount) ->
   currentTile = map Math.floor, obj.position
-  aspiredPosition = transformCoordinates obj.position, obj.direction, amount
+  aspiredPosition = transformCoordinates obj.position, obj.direction, amount * obj.speed
   aspiredTile = map Math.floor, aspiredPosition
   if !wallP aspiredTile, world.area
     setArea currentTile, "", world.area
@@ -152,10 +154,9 @@ transformWorld = (world, amount) ->
 prevTime = 0
 gameloop = (runningTime) ->
   requestAnimationFrame gameloop if world.running
-  console.log prevTime
   if prevTime != 0
     time = (runningTime - prevTime) / 1000
-    thinkPlayer world.player
+    playPlayer world.player, time
     transformWorld world, time
     draw world
   prevTime = runningTime if world.running

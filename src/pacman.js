@@ -1,5 +1,5 @@
 (function() {
-  var Direction, Div, HtmlParameter, HtmlTag, autoCurry, compose, containsP, curry, doOr, dot, draw, enemyP, equalsP, foodP, gameloop, getArrayFromArguments, join, lookupArea, map, prevTime, setArea, setProperty, startGame, thinkPlayer, toArray, transformCoordinates, transformObject, transformWorld, undefinedP, walkableP, wallP, world,
+  var Direction, Div, HtmlParameter, HtmlTag, autoCurry, compose, containsP, curry, doOr, dot, draw, equalsP, gameloop, getArrayFromArguments, isPastTileP, join, lookupArea, map, playPlayer, prevTime, setArea, setProperty, startGame, toArray, transformCoordinates, transformObject, transformWorld, undefinedP, wallP, world,
     __slice = [].slice;
 
   toArray = function(xs) {
@@ -119,7 +119,7 @@
     running: false,
     points: 0,
     player: {
-      speed: 3,
+      speed: 4,
       position: [1, 1],
       direction: Direction.right,
       view: "\u15E7"
@@ -149,11 +149,21 @@
 
   wallP = compose(equalsP("W"), lookupArea);
 
-  foodP = compose(equalsP("+"), lookupArea);
-
-  enemyP = compose(equalsP("E"), lookupArea);
-
-  walkableP = compose(doOr(wallP, undefinedP), getArrayFromArguments);
+  isPastTileP = function(_arg, _arg1, direction) {
+    var dx, dy, ox, oy;
+    dx = _arg[0], dy = _arg[1];
+    ox = _arg1[0], oy = _arg1[1];
+    switch (direction) {
+      case Direction.left:
+        return dx < (Math.floor(ox));
+      case Direction.right:
+        return (Math.floor(dx)) > ox;
+      case Direction.top:
+        return dy < (Math.floor(oy));
+      case Direction.down:
+        return (Math.floor(dy)) > oy;
+    }
+  };
 
   transformCoordinates = function(_arg, direction, amount) {
     var x, y;
@@ -163,25 +173,27 @@
     }
     switch (direction) {
       case Direction.left:
-        return [x - amount, y];
+        return [x - amount, Math.floor(y)];
       case Direction.right:
-        return [x + amount, y];
+        return [x + amount, Math.floor(y)];
       case Direction.top:
-        return [x, y - amount];
+        return [Math.floor(x), y - amount];
       case Direction.down:
-        return [x, y + amount];
+        return [Math.floor(x), y + amount];
     }
   };
 
-  thinkPlayer = function(player) {
-    var aspiredPosition, aspiredTile, newPosition;
+  playPlayer = function(player, amount) {
+    var aspiredTile, currentAspiredPosition, currentRealPosition;
     if (player.awaitingDirection != null) {
-      aspiredPosition = transformCoordinates(player.position, player.awaitingDirection);
-      aspiredTile = map(Math.floor, aspiredPosition);
-      if (!wallP(aspiredTile, world.area)) {
-        player.direction = player.awaitingDirection;
-        player.awaitingDirection = void 0;
-        return newPosition = aspiredPosition;
+      currentRealPosition = map(Math.floor, player.position);
+      currentAspiredPosition = transformCoordinates(player.position, player.direction, amount * player.speed);
+      if (isPastTileP(currentAspiredPosition, currentRealPosition, player.direction)) {
+        aspiredTile = transformCoordinates(currentRealPosition, player.awaitingDirection);
+        if (!wallP(aspiredTile, world.area)) {
+          player.direction = player.awaitingDirection;
+          return player.awaitingDirection = void 0;
+        }
       }
     }
   };
@@ -189,7 +201,7 @@
   transformObject = function(obj, amount) {
     var aspiredPosition, aspiredTile, currentTile;
     currentTile = map(Math.floor, obj.position);
-    aspiredPosition = transformCoordinates(obj.position, obj.direction, amount);
+    aspiredPosition = transformCoordinates(obj.position, obj.direction, amount * obj.speed);
     aspiredTile = map(Math.floor, aspiredPosition);
     if (!wallP(aspiredTile, world.area)) {
       setArea(currentTile, "", world.area);
@@ -209,10 +221,9 @@
     if (world.running) {
       requestAnimationFrame(gameloop);
     }
-    console.log(prevTime);
     if (prevTime !== 0) {
       time = (runningTime - prevTime) / 1000;
-      thinkPlayer(world.player);
+      playPlayer(world.player, time);
       transformWorld(world, time);
       draw(world);
     }

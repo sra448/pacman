@@ -60,8 +60,10 @@ Direction =
   left: 37
 
 world =
+  running: false
   points: 0
   player:
+    speed: 4 # tiles per second
     position: [1, 1]
     direction: Direction.right
     view: "\u15E7"
@@ -81,7 +83,7 @@ world =
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", ".", ".", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         [".", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "."]
+         ["W", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "W"]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
@@ -113,54 +115,54 @@ setArea = ([x, y], value, xs) -> xs[y][x] = value
 # some usefull predicates
 wallP = compose (equalsP "W"), lookupArea
 
-foodP = compose (equalsP "+"), lookupArea
-
-enemyP = compose (equalsP "E"), lookupArea
-
-walkableP = compose (doOr wallP, undefinedP), getArrayFromArguments
-
 transformCoordinates = ([x, y], direction, amount = 1) ->
   switch direction
-    when Direction.left then [x-amount, y]
-    when Direction.right then [x+amount, y]
-    when Direction.top then [x, y-amount]
-    when Direction.down then [x, y+amount]
+    when Direction.left then [x-amount, (Math.floor y)]
+    when Direction.right then [x+amount, (Math.floor y)]
+    when Direction.top then [(Math.floor x), y-amount]
+    when Direction.down then [(Math.floor x), y+amount]
 
-getPossibleDirections = (position) ->
-  value for _, value of Direction when walkableP (transformCoordinates position, value), world.area
-
-transformObject = (obj, amount) ->
-  newPosition = transformCoordinates obj.position, obj.direction, amount
-
+setDirection = (obj, amount, currentTile) ->
   if obj.awaitingDirection?
-    aspiredPosition = transformCoordinates obj.position, obj.awaitingDirection
-    if !walkableP aspiredPosition, world.area
-      newPosition = aspiredPosition
+    newAspiredTile = transformCoordinates currentTile, obj.awaitingDirection
+    if !wallP newAspiredTile, world.area
       obj.direction = obj.awaitingDirection
       obj.awaitingDirection = undefined
+      newAspiredTile
 
-  if !walkableP newPosition, world.area
-    setArea obj.position, "", world.area
-    setArea newPosition, obj.view, world.area
-    obj.position = newPosition
+transformObject = (obj, amount, onChangeTile) ->
+  currentTile = map Math.floor, obj.position
+  aspiredPosition = transformCoordinates obj.position, obj.direction, (amount * obj.speed)
+  aspiredTile = map Math.floor, aspiredPosition
+  aspiredTile = (onChangeTile obj, amount, currentTile, aspiredTile) || aspiredTile
 
-transformWorld = (world) ->
-  transformObject world.player
-  # transformObject enemy for enemy in world.enemies
+  if currentTile != aspiredTile && (!wallP aspiredTile, world.area)
+    setArea currentTile, "", world.area
+    setArea aspiredTile, obj.view, world.area
+    obj.position = aspiredPosition
 
 prevTime = 0
-gameloop = (actTime) ->
-  time = (actTime - prevTime) / 1000
-  prevTime = actTime
-  console.log time
+gameloop = (runningTime) ->
+  requestAnimationFrame gameloop if world.running
 
-  transformWorld world, time
-  draw world
-  requestAnimationFrame gameloop
+  if prevTime != 0
+    amount = (runningTime - prevTime) / 1000
+    transformObject world.player, amount, setDirection
+    draw world
+  prevTime = runningTime if world.running
 
 startGame = ->
   draw world
-  $(document).on "keydown", (e) -> world.player.awaitingDirection = e.keyCode if containsP e.keyCode, [37, 38, 39, 40]
-  gameloop()
+  $(document).on "keydown", (e) ->
+    if containsP e.keyCode, [37, 38, 39, 40, 32]
+      e.preventDefault()
+      world.player.awaitingDirection = e.keyCode if containsP e.keyCode, [37, 38, 39, 40]
+
+      if !world.running
+        world.running = true
+        requestAnimationFrame gameloop
+      else if e.keyCode == 32
+        world.running = false
+        prevTime = 0
 
 startGame()

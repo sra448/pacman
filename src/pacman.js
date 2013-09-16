@@ -1,5 +1,5 @@
 (function() {
-  var Direction, Div, HtmlParameter, HtmlTag, autoCurry, compose, containsP, curry, doOr, dot, draw, equalsP, gameloop, getArrayFromArguments, join, lookupArea, map, prevTime, setArea, setDirection, setProperty, startGame, toArray, transformCoordinates, transformObject, undefinedP, wallP, world,
+  var Direction, Div, HtmlParameter, HtmlTag, autoCurry, compose, containsP, curry, doOr, dot, draw, equalsP, gameloop, getArrayFromArguments, join, lookupArea, map, prevTime, resetCoordinatesDecimals, setArea, setDirection, setProperty, startGame, toArray, transformCoordinates, transformObject, undefinedP, wallP, world,
     __slice = [].slice;
 
   toArray = function(xs) {
@@ -167,14 +167,29 @@
     }
   };
 
+  resetCoordinatesDecimals = function(_arg, direction) {
+    var x, y;
+    x = _arg[0], y = _arg[1];
+    switch (direction) {
+      case Direction.left:
+        return [Math.ceil(x + 0.001), y];
+      case Direction.right:
+        return [Math.floor(x), y];
+      case Direction.top:
+        return [x, Math.ceil(y + 0.001)];
+      case Direction.down:
+        return [x, Math.floor(y)];
+    }
+  };
+
   setDirection = function(obj, amount, currentTile) {
-    var newAspiredTile;
+    var aheadTile;
     if (obj.awaitingDirection != null) {
-      newAspiredTile = transformCoordinates(currentTile, obj.awaitingDirection);
-      if (!wallP(newAspiredTile, world.area)) {
+      aheadTile = transformCoordinates(currentTile, obj.awaitingDirection);
+      if (!wallP(aheadTile, world.area)) {
         obj.direction = obj.awaitingDirection;
-        obj.awaitingDirection = void 0;
-        return newAspiredTile;
+        obj.position = resetCoordinatesDecimals(obj.position, obj.direction);
+        return obj.awaitingDirection = void 0;
       }
     }
   };
@@ -182,9 +197,11 @@
   transformObject = function(obj, amount, onChangeTile) {
     var aspiredPosition, aspiredTile, currentTile;
     currentTile = map(Math.floor, obj.position);
+    if (typeof onChangeTile === "function") {
+      onChangeTile(obj, amount, currentTile);
+    }
     aspiredPosition = transformCoordinates(obj.position, obj.direction, amount * obj.speed);
     aspiredTile = map(Math.floor, aspiredPosition);
-    aspiredTile = (onChangeTile(obj, amount, currentTile, aspiredTile)) || aspiredTile;
     if (currentTile !== aspiredTile && (!wallP(aspiredTile, world.area))) {
       setArea(currentTile, "", world.area);
       setArea(aspiredTile, obj.view, world.area);

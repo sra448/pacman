@@ -117,24 +117,31 @@ wallP = compose (equalsP "W"), lookupArea
 
 transformCoordinates = ([x, y], direction, amount = 1) ->
   switch direction
-    when Direction.left then [x-amount, (Math.floor y)]
-    when Direction.right then [x+amount, (Math.floor y)]
-    when Direction.top then [(Math.floor x), y-amount]
-    when Direction.down then [(Math.floor x), y+amount]
+    when Direction.left then [x - amount, (Math.floor y)]
+    when Direction.right then [x + amount, (Math.floor y)]
+    when Direction.top then [(Math.floor x), y - amount]
+    when Direction.down then [(Math.floor x), y + amount]
+
+resetCoordinatesDecimals = ([x, y], direction) ->
+  switch direction
+    when Direction.left then [(Math.ceil x + 0.001), y]
+    when Direction.right then [(Math.floor x), y]
+    when Direction.top then [x, (Math.ceil y + 0.001)]
+    when Direction.down then [x, (Math.floor y)]
 
 setDirection = (obj, amount, currentTile) ->
   if obj.awaitingDirection?
-    newAspiredTile = transformCoordinates currentTile, obj.awaitingDirection
-    if !wallP newAspiredTile, world.area
+    aheadTile = transformCoordinates currentTile, obj.awaitingDirection
+    if !wallP aheadTile, world.area
       obj.direction = obj.awaitingDirection
+      obj.position = resetCoordinatesDecimals obj.position, obj.direction
       obj.awaitingDirection = undefined
-      newAspiredTile
 
 transformObject = (obj, amount, onChangeTile) ->
   currentTile = map Math.floor, obj.position
+  onChangeTile? obj, amount, currentTile
   aspiredPosition = transformCoordinates obj.position, obj.direction, (amount * obj.speed)
   aspiredTile = map Math.floor, aspiredPosition
-  aspiredTile = (onChangeTile obj, amount, currentTile, aspiredTile) || aspiredTile
 
   if currentTile != aspiredTile && (!wallP aspiredTile, world.area)
     setArea currentTile, "", world.area

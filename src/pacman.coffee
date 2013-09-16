@@ -16,7 +16,7 @@ autoCurry = (fn, numArgs = fn.length) ->
 
 doOr = autoCurry (a, b, params) -> (a.apply {}, params) || (b.apply {}, params)
 
-getArrayFromArguments = (args...) -> args
+getArray = (args...) -> args
 
 join = autoCurry (delimiter, xs) -> xs.join delimiter
 
@@ -83,7 +83,7 @@ world =
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", ".", ".", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         ["W", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "W"]
+         [".", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
@@ -113,7 +113,11 @@ lookupArea = ([x, y], xs) -> xs[y]?[x]
 setArea = ([x, y], value, xs) -> xs[y][x] = value
 
 # some usefull predicates
-wallP = compose (equalsP "W"), lookupArea
+lookupWallP = compose (equalsP "W"), lookupArea
+
+lookupUndefinedP = compose (equalsP undefined), lookupArea
+
+lookupGoableP = compose (doOr lookupWallP, lookupUndefinedP), getArray
 
 transformCoordinates = ([x, y], direction, amount = 1) ->
   switch direction
@@ -132,7 +136,7 @@ resetCoordinatesDecimals = ([x, y], direction) ->
 setDirection = (obj, amount, currentTile) ->
   if obj.awaitingDirection?
     aheadTile = transformCoordinates currentTile, obj.awaitingDirection
-    if !wallP aheadTile, world.area
+    if !lookupGoableP aheadTile, world.area
       obj.direction = obj.awaitingDirection
       obj.position = resetCoordinatesDecimals obj.position, obj.direction
       obj.awaitingDirection = undefined
@@ -143,7 +147,7 @@ transformObject = (obj, amount, onChangeTile) ->
   aspiredPosition = transformCoordinates obj.position, obj.direction, (amount * obj.speed)
   aspiredTile = map Math.floor, aspiredPosition
 
-  if currentTile != aspiredTile && (!wallP aspiredTile, world.area)
+  if currentTile != aspiredTile && (!lookupGoableP aspiredTile, world.area)
     setArea currentTile, "", world.area
     setArea aspiredTile, obj.view, world.area
     obj.position = aspiredPosition

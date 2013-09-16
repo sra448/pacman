@@ -14,9 +14,17 @@ autoCurry = (fn, numArgs = fn.length) ->
     else
       fn.apply this, arguments
 
+doDo = (funcs...) -> (params...) -> fn.apply {}, params for fn in funcs
+
 doOr = autoCurry (a, b, params) -> (a.apply {}, params) || (b.apply {}, params)
 
 getArray = (args...) -> args
+
+getOtherInPair = autoCurry (a, [b, c]) ->
+  if b + "" == a + ""
+    c
+  else if c + "" == a + ""
+    b
 
 join = autoCurry (delimiter, xs) -> xs.join delimiter
 
@@ -67,8 +75,9 @@ world =
     position: [1, 1]
     direction: Direction.right
     view: "\u15E7"
-  enemySpawns: [[12, 12], [12, 14], [12, 16]]
-  enemies: []
+  portals:
+    37: [[[0, 14], [27, 14]]] # 37 = Direction.left
+    39: [[[27, 14], [0, 14]]] # 39 = Direction.right
   area: [["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W"]
          ["W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W"]
          ["W", "+", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
@@ -83,7 +92,7 @@ world =
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", ".", ".", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         [".", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", "."]
+         ["<", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", ">"]
          ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
          [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
@@ -119,12 +128,17 @@ lookupUndefinedP = compose (equalsP undefined), lookupArea
 
 lookupGoableP = compose (doOr lookupWallP, lookupUndefinedP), getArray
 
+lookupPortalP = (coordinates, direction) ->
+  if world.portals[direction]?
+    for [a, b] in world.portals[direction]
+      return b if a + "" == coordinates + ""
+
 transformCoordinates = ([x, y], direction, amount = 1) ->
   switch direction
-    when Direction.left then [x - amount, (Math.floor y)]
-    when Direction.right then [x + amount, (Math.floor y)]
-    when Direction.top then [(Math.floor x), y - amount]
-    when Direction.down then [(Math.floor x), y + amount]
+    when Direction.left then [x - amount, y]
+    when Direction.right then [x + amount, y]
+    when Direction.top then [x, y - amount]
+    when Direction.down then [x, y + amount]
 
 resetCoordinatesDecimals = ([x, y], direction) ->
   switch direction
@@ -133,24 +147,30 @@ resetCoordinatesDecimals = ([x, y], direction) ->
     when Direction.top then [x, (Math.ceil y + 0.001)]
     when Direction.down then [x, (Math.floor y)]
 
-setDirection = (obj, amount, currentTile) ->
+setDirection = (obj) ->
   if obj.awaitingDirection?
-    aheadTile = transformCoordinates currentTile, obj.awaitingDirection
+    aheadTile = transformCoordinates obj.currentTile, obj.awaitingDirection
     if !lookupGoableP aheadTile, world.area
       obj.direction = obj.awaitingDirection
       obj.position = resetCoordinatesDecimals obj.position, obj.direction
       obj.awaitingDirection = undefined
 
-transformObject = (obj, amount, onChangeTile) ->
-  currentTile = map Math.floor, obj.position
-  onChangeTile? obj, amount, currentTile
+teleport = (obj) ->
+  newPosition = lookupPortalP obj.currentTile, obj.direction
+  obj.position = resetCoordinatesDecimals newPosition, obj.direction if newPosition?
+
+transformObject = (obj, amount, handleObject) ->
+  obj.currentTile = map Math.floor, obj.position
+  handleObject? obj
   aspiredPosition = transformCoordinates obj.position, obj.direction, (amount * obj.speed)
   aspiredTile = map Math.floor, aspiredPosition
 
-  if currentTile != aspiredTile && (!lookupGoableP aspiredTile, world.area)
-    setArea currentTile, "", world.area
+  if obj.currentTile != aspiredTile && (!lookupGoableP aspiredTile, world.area)
+    setArea obj.currentTile, "", world.area
     setArea aspiredTile, obj.view, world.area
     obj.position = aspiredPosition
+
+handlePlayer = doDo setDirection, teleport
 
 prevTime = 0
 gameloop = (runningTime) ->
@@ -158,7 +178,7 @@ gameloop = (runningTime) ->
 
   if prevTime != 0
     amount = (runningTime - prevTime) / 1000
-    transformObject world.player, amount, setDirection
+    transformObject world.player, amount, handlePlayer
     draw world
   prevTime = runningTime if world.running
 

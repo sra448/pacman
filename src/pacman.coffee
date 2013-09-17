@@ -148,7 +148,7 @@ resetCoordinatesDecimals = ([x, y], direction) ->
     when Direction.down then [x, (Math.floor y)]
 
 setDirection = (obj) ->
-  if obj.awaitingDirection?
+  if obj.awaitingDirection? && obj.awaitingDirection != obj.direction
     aheadTile = transformCoordinates obj.currentTile, obj.awaitingDirection
     if !lookupGoableP aheadTile, world.area
       obj.direction = obj.awaitingDirection

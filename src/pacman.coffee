@@ -1,5 +1,7 @@
 toArray = (xs) -> [].slice.call xs
 
+negate = (x) -> !x
+
 # curry and autoCurry stolen from wu.js
 curry = (fn, args...) ->
   -> fn.apply this, (args.concat (toArray arguments))
@@ -19,6 +21,12 @@ doDo = (funcs...) -> (params...) -> fn.apply {}, params for fn in funcs
 doOr = autoCurry (a, b, params) -> (a.apply {}, params) || (b.apply {}, params)
 
 getArray = (args...) -> args
+
+first = (xs) -> xs?[0]
+
+firstParam = (x) -> x
+
+collect = (xs) -> (x for x in xs when x?)
 
 getOtherInPair = autoCurry (a, [b, c]) ->
   if b + "" == a + ""
@@ -50,6 +58,8 @@ containsP = autoCurry (a, xs) ->
   return true for x in xs when x == a
   false
 
+random = (max = 1) -> Math.random() * max
+
 # some html constructors
 HtmlParameter = (name, value) -> "#{name}='#{value}'"
 
@@ -78,36 +88,39 @@ world =
   portals:
     37: [[[0, 14], [27, 14]]] # 37 = Direction.left
     39: [[[27, 14], [0, 14]]] # 39 = Direction.right
+  enemySpawns: [[14, 14]]
+  maxEnemies: 4
+  enemies: []
   area: [["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W"]
-         ["W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "+", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "+", "+", "W"]
-         ["W", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", ".", "W", "W", ".", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         [".", ".", ".", ".", ".", "W", "+", "W", "W", "W", "W", "W", ".", "W", "W", ".", "W", "W", "W", "W", "W", "+", "W", ".", ".", ".", ".", "."]
-         [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
-         [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", ".", ".", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
-         ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         ["<", ".", ".", ".", ".", ".", "+", ".", ".", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", ".", ".", "+", ".", ".", ".", ".", ".", ">"]
-         ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", ".", ".", ".", ".", ".", ".", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
-         [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
-         [".", ".", ".", ".", ".", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", ".", ".", ".", ".", "."]
-         ["W", "W", "W", "W", "W", "W", "+", "W", "W", ".", "W", "W", "W", "W", "W", "W", "W", "W", ".", "W", "W", "+", "W", "W", "W", "W", "W", "W"]
-         ["W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "+", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "+", "+", "W", "W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W", "W", "+", "+", "+", "W"]
-         ["W", "W", "W", "+", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "+", "W", "W", "W"]
-         ["W", "W", "W", "+", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "+", "W", "W", "W"]
-         ["W", "+", "+", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "W", "W", "+", "+", "+", "+", "+", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W", "W", "+", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "+", "W"]
-         ["W", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "W"]
+         ["W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", " ", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", " ", " ", "W"]
+         ["W", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", "W"]
+         [" ", " ", " ", " ", " ", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", " ", " ", " ", " ", " "]
+         [" ", " ", " ", " ", " ", "W", " ", "W", "W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W", "W", " ", "W", " ", " ", " ", " ", " "]
+         [" ", " ", " ", " ", " ", "W", " ", "W", "W", " ", "W", "W", "W", " ", " ", "W", "W", "W", " ", "W", "W", " ", "W", " ", " ", " ", " ", " "]
+         ["W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", " ", " ", " ", " ", " ", " ", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W"]
+         ["<", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W", " ", " ", " ", " ", " ", " ", "W", " ", " ", " ", " ", " ", " ", " ", " ", " ", ">"]
+         ["W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", " ", " ", "W", " ", " ", " ", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W"]
+         [" ", " ", " ", " ", " ", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", " ", " ", " ", " ", " "]
+         [" ", " ", " ", " ", " ", "W", " ", "W", "W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W", "W", " ", "W", " ", " ", " ", " ", " "]
+         [" ", " ", " ", " ", " ", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", " ", " ", " ", " ", " "]
+         ["W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W"]
+         ["W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", " ", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", " ", " ", "W", "W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W", "W", " ", " ", " ", "W"]
+         ["W", "W", "W", " ", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", " ", "W", "W", "W"]
+         ["W", "W", "W", " ", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", " ", "W", "W", "W"]
+         ["W", " ", " ", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", "W", "W", " ", " ", " ", " ", " ", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W", "W", " ", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", " ", "W"]
+         ["W", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", "W"]
          ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "W"]]
 
 draw = compose (setProperty ($ "#world")[0], 'innerHTML'), # send HTML to screen
@@ -126,7 +139,9 @@ lookupWallP = compose (equalsP "W"), lookupArea
 
 lookupUndefinedP = compose (equalsP undefined), lookupArea
 
-lookupGoableP = compose (doOr lookupWallP, lookupUndefinedP), getArray
+lookupEmptyP = compose (equalsP " "), lookupArea
+
+lookupGoableP = compose negate, (doOr lookupWallP, lookupUndefinedP), getArray
 
 lookupPortalP = (coordinates, direction) ->
   if world.portals[direction]?
@@ -147,40 +162,72 @@ resetCoordinatesDecimals = ([x, y], direction) ->
     when Direction.top then [x, (Math.ceil y + 0.001)]
     when Direction.down then [x, (Math.floor y)]
 
-setDirection = (obj) ->
-  if obj.awaitingDirection? && obj.awaitingDirection != obj.direction
-    aheadTile = transformCoordinates obj.currentTile, obj.awaitingDirection
-    if !lookupGoableP aheadTile, world.area
-      obj.direction = obj.awaitingDirection
+setDirection = (obj, direction = obj.awaitingDirection) ->
+  if direction? && direction != obj.direction
+    aheadTile = transformCoordinates obj.currentTile, direction
+    if lookupGoableP aheadTile, world.area
+      obj.direction = direction
       obj.position = resetCoordinatesDecimals obj.position, obj.direction
-      obj.awaitingDirection = undefined
+      delete obj.awaitingDirection
 
-teleport = (obj) ->
+teleport = (obj, world) ->
   newPosition = lookupPortalP obj.currentTile, obj.direction
   obj.position = resetCoordinatesDecimals newPosition, obj.direction if newPosition?
 
-transformObject = (obj, amount, handleObject) ->
+transformObject = (obj, amount, world, handleObject) ->
   obj.currentTile = map Math.floor, obj.position
-  handleObject? obj
+  handleObject? obj, world
   aspiredPosition = transformCoordinates obj.position, obj.direction, (amount * obj.speed)
   aspiredTile = map Math.floor, aspiredPosition
 
-  if obj.currentTile != aspiredTile && (!lookupGoableP aspiredTile, world.area)
-    setArea obj.currentTile, "", world.area
+  if obj.currentTile != aspiredTile && (lookupGoableP aspiredTile, world.area)
+    setArea obj.currentTile, " ", world.area
     setArea aspiredTile, obj.view, world.area
     obj.position = aspiredPosition
 
-handlePlayer = doDo setDirection, teleport
+handlePlayer = doDo (compose setDirection, firstParam), teleport
+
+goableDirections = ([x, y], world) ->
+  collect (for key, direction of Direction
+    direction if lookupGoableP (transformCoordinates [x, y], direction), world.area)
+
+randomDirection = (obj, world) ->
+  directions = goableDirections obj.currentTile, world
+  directions[Math.floor (random directions.length)]
+
+handleEnemy = (enemy, world) ->
+  aspiredTile = transformCoordinates enemy.currentTile, enemy.direction
+  setDirection enemy, (randomDirection enemy, world) unless lookupGoableP aspiredTile, world.area
+
+spawnEnemiesLoop = ->
+  if world.running && world.enemies.length < world.maxEnemies
+    setTimeout spawnEnemiesLoop, 3000
+    if lookupEmptyP world.enemySpawns[0], world.area
+      world.enemies.push
+        position: world.enemySpawns[0]
+        direction: Direction.top
+        speed: 5
+        view: "E"
 
 prevTime = 0
-gameloop = (runningTime) ->
-  requestAnimationFrame gameloop if world.running
+gameLoop = (runningTime) ->
+  requestAnimationFrame gameLoop if world.running
 
   if prevTime != 0
     amount = (runningTime - prevTime) / 1000
-    transformObject world.player, amount, handlePlayer
+    transformObject world.player, amount, world, handlePlayer
+    transformObject enemy, amount, world, handleEnemy for enemy in world.enemies
     draw world
   prevTime = runningTime if world.running
+
+startPause = (stop = false) ->
+  if !world.running
+    world.running = true
+    requestAnimationFrame gameLoop
+    spawnEnemiesLoop()
+  else if stop
+    world.running = false
+    prevTime = 0
 
 startGame = ->
   draw world
@@ -188,12 +235,6 @@ startGame = ->
     if containsP e.keyCode, [37, 38, 39, 40, 32]
       e.preventDefault()
       world.player.awaitingDirection = e.keyCode if containsP e.keyCode, [37, 38, 39, 40]
-
-      if !world.running
-        world.running = true
-        requestAnimationFrame gameloop
-      else if e.keyCode == 32
-        world.running = false
-        prevTime = 0
+      startPause (e.keyCode == 32)
 
 startGame()

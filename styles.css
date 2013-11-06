@@ -1,3 +1,14 @@
+body {
+  background: #2E2C2D;
+  color: white;
+  text-align: center;
+}
+
+#world {
+  width: 900px;
+  margin: auto;
+}
+
 .row {
   display: table;
   height: 34px;
@@ -5,7 +16,7 @@
 
 .cell {
   display: table-cell;
-  border: 1px solid #eee;
+  border: 1px solid #444;
   width: 30px;
   vertical-align: middle;
   text-align: center;
